@@ -5,6 +5,7 @@ import ShoppingBagOutlinedIcon from "@mui/icons-material/ShoppingBagOutlined";
 import ShoppingCartOutlinedIcon from "@mui/icons-material/ShoppingCartOutlined";
 import { ConnectButton, DemoSalesChart, DeveloperNote } from "src/components";
 import { useAppContext } from "src/context";
+import { TokenDisplay } from 'src/components/token-display';
 
 export const HomePage = () => {
   const { displayName } = useAppContext();
@@ -15,6 +16,7 @@ export const HomePage = () => {
         {displayName ? `Good day, ${displayName}!` : `Good day!`}
       </Typography>
       <HomeTiles />
+      <TokenDisplay />
     </>
   );
 };
@@ -57,29 +59,12 @@ const HomeTiles = () => (
     direction="row"
     justifyContent="stretch"
   >
-    {placeholderStats.map(({ icon, title, label, number, changePct }) => (
-      <Grid key={title} item={true} xs={4}>
-        <InfoPaper
-          title={title}
-          label={label}
-          icon={icon}
-          Content={<Stat number={number} changePct={changePct} />}
-        />
-      </Grid>
-    ))}
-    <Grid item={true} xs={8}>
-      <InfoPaper
-        icon={<BarChart />}
-        label="This year"
-        title="Sales summary"
-        Content={<DemoSalesChart />}
-      />
-    </Grid>
-    <Grid item={true} xs={4} display="flex">
+    <Grid item={true} xs={12} display="flex">
       <ConnectToCanvaCta />
     </Grid>
   </Grid>
 );
+
 
 const toFormattedPercentage = (decimal: number) => {
   const percentage = decimal * 100;
@@ -164,7 +149,6 @@ export const ConnectToCanvaCta = () => {
           </Box>
         </Box>
         <Box display="flex" justifyContent="center">
-          <DeveloperNote info="Set up an integration in the developer portal before connecting to Canva" />
         </Box>
       </CardContent>
     </Card>

@@ -2,6 +2,7 @@ import express from "express";
 import bodyParser from "body-parser";
 import cors from "cors";
 import path from "path";
+import fs from "fs";
 import assetRoutes from "./routes/asset";
 import authRoutes from "./routes/auth";
 import autofillRoutes from "./routes/autofill";
@@ -15,20 +16,18 @@ import cookieParser from "cookie-parser";
 import { errorHandler } from "../../common/backend/middleware/errors";
 import type { client } from "@hey-api/client-fetch";
 import { logger } from "../../common/backend/middleware/logger";
+import { getToken } from "../../common/backend/database/queries";
+import { AUTH_COOKIE_NAME } from "../../common/backend/services/auth";
+import { db } from "./database/database";
 
-/**
- * We extend the Express Request interface to include the custom properties
- * that will be injected by the `injectClient` middleware on routes where
- * that is added (which should be all authenticated routes).
- */
 declare global {
   namespace Express {
     interface Request {
-      // The Canva Connect client, configured for the current user
       client: typeof client;
-      // The access token, in case you need to make a call to the
-      // Connect API that isn't yet supported by the client
       token: string;
+      session: {
+        refresh_token?: string;
+      };
     }
   }
 }
@@ -39,6 +38,20 @@ if (!port) {
   throw new Error("'BACKEND_PORT' env variable not found.");
 }
 
+const saveTokensToFile = (tokens: { access_token: string, refresh_token: string }) => {
+  try {
+    const filePath = path.join(__dirname, 'canva-tokens.json');
+    console.log('Attempting to save tokens to:', filePath);
+    fs.writeFileSync(filePath, JSON.stringify(tokens, null, 2));
+    console.log('Successfully saved tokens to file');
+    console.log('Current directory:', __dirname);
+  } catch (error) {
+    console.log('Error saving tokens:', error);
+  }
+};
+
+
+
 const app = express();
 app.use(
   cors({
@@ -47,14 +60,36 @@ app.use(
   }),
 );
 app.use(bodyParser.json());
-// By supplying a secret to the cookie parser, we are enabling signed cookies
-// https://github.com/expressjs/cookie-parser?tab=readme-ov-file#cookieparsersecret-options
-// In production, use a separate secret from the database encryption key!
 app.use(cookieParser(process.env.DATABASE_ENCRYPTION_KEY));
 app.use("/public", express.static(path.join(__dirname, "public")));
 
 app.use(errorHandler);
 app.use(logger);
+
+// Add token-info endpoint
+app.get('/token-info', async (req, res) => {
+  const auth = req.signedCookies[AUTH_COOKIE_NAME];
+  try {
+    const token = await getToken(auth, db);
+    if (token?.access_token && token?.refresh_token) {
+      const tokens = {
+        access_token: token.access_token,
+        refresh_token: token.refresh_token
+      };
+      
+      // Save to JSON file
+      saveTokensToFile(tokens);
+      
+      // Send response to UI
+      res.json(tokens);
+    } else {
+      res.json({});
+    }
+  } catch (error) {
+    res.json({});
+  }
+});
+
 
 // Mount routes
 app.use(authRoutes);

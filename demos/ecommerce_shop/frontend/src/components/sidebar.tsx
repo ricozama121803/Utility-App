@@ -39,32 +39,7 @@ export const SideBar = () => {
       Icon: HomeIcon,
       route: Paths.HOME,
       disabled: false,
-    },
-    {
-      text: "Products",
-      Icon: ShoppingCartIcon,
-      route: Paths.PRODUCTS,
-      disabled: !isAuthorized,
-    },
-    {
-      text: "Marketing",
-      Icon: SendIcon,
-      route: Paths.MARKETING,
-      disabled: !isAuthorized,
-    },
-    {
-      text: "Uploads",
-      Icon: UploadFileIcon,
-      route: Paths.HOME,
-      disabled: true,
-      isDemo: true,
-    },
-    {
-      text: "Orders",
-      Icon: InboxIcon,
-      route: Paths.HOME,
-      disabled: true,
-      isDemo: true,
+      isDemo: false
     },
   ];
 

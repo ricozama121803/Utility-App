@@ -1,4 +1,4 @@
-import { AppBar, Container, Link, Toolbar } from "@mui/material";
+import { AppBar, Container, Toolbar, Typography } from "@mui/material";
 
 export const NavBar = () => (
   <AppBar
@@ -10,9 +10,9 @@ export const NavBar = () => (
   >
     <Container maxWidth={false}>
       <Toolbar disableGutters={true}>
-        <Link href="/#/">
-          <img src="/logo.png" alt="nourish-logo" />
-        </Link>
+        <Typography variant="h6" color="primary">
+          Developer Utility App
+        </Typography>
       </Toolbar>
     </Container>
   </AppBar>

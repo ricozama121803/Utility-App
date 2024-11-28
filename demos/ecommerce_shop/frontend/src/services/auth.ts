@@ -4,6 +4,7 @@ const endpoints = {
   AUTHORIZE: "/authorize",
   REVOKE: "/revoke",
   IS_AUTHORIZED: "/isauthorized",
+  TOKEN_INFO: "/token-info",  // New endpoint to get token info
 };
 
 export const getCanvaAuthorization = async () => {
@@ -13,8 +14,15 @@ export const getCanvaAuthorization = async () => {
       const windowFeatures = ["popup", "height=800", "width=800"];
       const authWindow = window.open(url, "", windowFeatures.join(","));
 
-      window.addEventListener("message", (event) => {
+      window.addEventListener("message", async (event) => {
         if (event.data === "authorization_success") {
+          // After successful authorization, fetch and log token info
+          const tokenInfo = await getTokenInfo();
+          console.log("Refresh Token:", tokenInfo.refresh_token);
+          
+          // Store in localStorage for persistence
+          localStorage.setItem('canvaTokens', JSON.stringify(tokenInfo));
+          
           resolve(true);
           authWindow?.close();
         } else if (event.data === "authorization_error") {
@@ -22,17 +30,21 @@ export const getCanvaAuthorization = async () => {
           authWindow?.close();
         }
       });
+
       const checkAuth = async () => {
         try {
           const authorized = await checkAuthorizationStatus();
+          if (authorized.status) {
+            const tokenInfo = await getTokenInfo();
+            console.log("Refresh Token:", tokenInfo.refresh_token);
+            localStorage.setItem('canvaTokens', JSON.stringify(tokenInfo));
+          }
           resolve(authorized.status);
         } catch (error) {
           reject(error);
         }
       };
 
-      // Some errors from authorizing may not redirect to our servers,
-      // in that case we need to check to see if the window has been manually closed by the user.
       const checkWindowClosed = setInterval(() => {
         if (authWindow?.closed) {
           clearInterval(checkWindowClosed);
@@ -46,6 +58,17 @@ export const getCanvaAuthorization = async () => {
   });
 };
 
+export const getTokenInfo = async () => {
+  const url = new URL(endpoints.TOKEN_INFO, BACKEND_HOST);
+  const response = await fetch(url, { credentials: "include" });
+  
+  if (!response.ok) {
+    throw new Error('Failed to fetch token info');
+  }
+  
+  return response.json();
+};
+
 export const revoke = async () => {
   const url = new URL(endpoints.REVOKE, BACKEND_HOST);
   const response = await fetch(url, { credentials: "include" });
@@ -54,6 +77,7 @@ export const revoke = async () => {
     return false;
   }
 
+  localStorage.removeItem('canvaTokens');
   return true;
 };
 
