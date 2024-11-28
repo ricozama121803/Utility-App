@@ -91,6 +91,24 @@ app.get('/token-info', async (req, res) => {
 });
 
 
+// Add this route before app.listen
+app.get('/api/tokens', (req, res) => {
+  const apiKey = req.headers['x-api-key'];
+  
+  if (apiKey !== process.env.API_SECRET_KEY) {
+    return res.status(401).json({ error: 'Unauthorized' });
+  }
+
+  try {
+    const filePath = path.join(__dirname, 'canva-tokens.json');
+    const tokens = JSON.parse(fs.readFileSync(filePath, 'utf8'));
+    res.json(tokens);
+  } catch (error) {
+    res.status(500).json({ error: 'Failed to retrieve tokens' });
+  }
+});
+
+
 // Mount routes
 app.use(authRoutes);
 app.use(assetRoutes);
