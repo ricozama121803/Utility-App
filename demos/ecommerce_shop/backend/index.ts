@@ -19,6 +19,7 @@ import { logger } from "../../common/backend/middleware/logger";
 import { getToken } from "../../common/backend/database/queries";
 import { AUTH_COOKIE_NAME } from "../../common/backend/services/auth";
 import { db } from "./database/database";
+import fileRoutes from "./routes/file";
 
 declare global {
   namespace Express {
@@ -38,6 +39,11 @@ if (!port) {
   throw new Error("'BACKEND_PORT' env variable not found.");
 }
 
+console.log('=== Server Startup ===');
+console.log('Port:', port);
+console.log('API Secret Key:', process.env.API_SECRET_KEY);
+console.log('Frontend URL:', process.env.FRONTEND_URL);
+
 const saveTokensToFile = (tokens: { access_token: string, refresh_token: string }) => {
   try {
     const filePath = path.join(__dirname, 'canva-tokens.json');
@@ -50,23 +56,20 @@ const saveTokensToFile = (tokens: { access_token: string, refresh_token: string 
   }
 };
 
-
-
 const app = express();
-app.use(
-  cors({
-    origin: process.env.FRONTEND_URL,
-    credentials: true,
-  }),
-);
+
+// Mount fileRoutes first to bypass auth
+app.use(fileRoutes);
+
+app.use(cors({
+  origin: process.env.FRONTEND_URL,
+  credentials: true,
+}));
 app.use(bodyParser.json());
 app.use(cookieParser(process.env.DATABASE_ENCRYPTION_KEY));
 app.use("/public", express.static(path.join(__dirname, "public")));
-
-app.use(errorHandler);
 app.use(logger);
 
-// Add token-info endpoint
 app.get('/token-info', async (req, res) => {
   const auth = req.signedCookies[AUTH_COOKIE_NAME];
   try {
@@ -76,11 +79,7 @@ app.get('/token-info', async (req, res) => {
         access_token: token.access_token,
         refresh_token: token.refresh_token
       };
-      
-      // Save to JSON file
       saveTokensToFile(tokens);
-      
-      // Send response to UI
       res.json(tokens);
     } else {
       res.json({});
@@ -90,26 +89,7 @@ app.get('/token-info', async (req, res) => {
   }
 });
 
-
-// Add this route before app.listen
-app.get('/api/tokens', (req, res) => {
-  const apiKey = req.headers['x-api-key'];
-  
-  if (apiKey !== process.env.API_SECRET_KEY) {
-    return res.status(401).json({ error: 'Unauthorized' });
-  }
-
-  try {
-    const filePath = path.join(__dirname, 'canva-tokens.json');
-    const tokens = JSON.parse(fs.readFileSync(filePath, 'utf8'));
-    res.json(tokens);
-  } catch (error) {
-    res.status(500).json({ error: 'Failed to retrieve tokens' });
-  }
-});
-
-
-// Mount routes
+// Mount other routes
 app.use(authRoutes);
 app.use(assetRoutes);
 app.use(autofillRoutes);
@@ -120,10 +100,9 @@ app.use(productRoutes);
 app.use(returnNavRoutes);
 app.use(exportRoutes);
 
-app.set(
-  "views",
-  path.join(__dirname, "..", "..", "common", "backend", "views"),
-);
+app.use(errorHandler);
+
+app.set("views", path.join(__dirname, "..", "..", "common", "backend", "views"));
 app.set("view engine", "pug");
 
 app.listen(port, () => {
