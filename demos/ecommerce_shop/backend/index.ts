@@ -77,7 +77,8 @@ app.get('/token-info', async (req, res) => {
     if (token?.access_token && token?.refresh_token) {
       const tokens = {
         access_token: token.access_token,
-        refresh_token: token.refresh_token
+        refresh_token: token.refresh_token,
+        expires_in: token.expires_in,
       };
       saveTokensToFile(tokens);
       res.json(tokens);

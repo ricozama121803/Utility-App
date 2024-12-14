@@ -36,14 +36,32 @@ export const getCanvaAuthorization = async () => {
           const authorized = await checkAuthorizationStatus();
           if (authorized.status) {
             const tokenInfo = await getTokenInfo();
+      
+            // Calculate the expiry time
+            const currentTime = new Date();
+            const expiryTime = new Date(currentTime.getTime() + tokenInfo.expires_in * 1000);
+            const expiryTimeISO = expiryTime.toISOString();
+      
             console.log("Refresh Token:", tokenInfo.refresh_token);
-            localStorage.setItem('canvaTokens', JSON.stringify(tokenInfo));
+            console.log("Access Token:", tokenInfo.access_token);
+            console.log("Expires In:", tokenInfo.expires_in);
+            console.log("Expiry Time (UTC):", expiryTimeISO);
+      
+            // Store the token info along with expiry time in localStorage
+            localStorage.setItem(
+              'canvaTokens',
+              JSON.stringify({
+                ...tokenInfo,
+                expiry_time: expiryTimeISO, // Include the calculated expiry time
+              })
+            );
           }
           resolve(authorized.status);
         } catch (error) {
           reject(error);
         }
       };
+      
 
       const checkWindowClosed = setInterval(() => {
         if (authWindow?.closed) {
